@@ -12,15 +12,21 @@
 #define FOOD '.' 
 #define EMPTY ' ' 
 #define DEMON 'X' 
+#define moving_speed 0.1
 
 // Global Variables are 
 // Declared here 
 int res = 0; 
 int score = 0; 
-int pacman_x, pacman_y; 
 char board[HEIGHT][WIDTH]; 
 int food = 0; 
 int curr = 0; 
+
+// Define pacman position and velocity
+float pacman_x = WIDTH / 2.0;
+float pacman_y = HEIGHT / 2.0;
+float pacman_vx = 0;
+float pacman_vy = 0;
 
 // to make the food blink
 int toggle = 0;  // 0 stands for visible, 1 stands for invisible
@@ -78,7 +84,7 @@ void initialize()
 	// Cursor at Center 
 	pacman_x = WIDTH / 2; 
 	pacman_y = HEIGHT / 2; 
-	board[pacman_y][pacman_x] = PACMAN; 
+	board[(int)pacman_y][(int)pacman_x] = PACMAN; 
 
 	// Points Placed 
 	for (int i = 0; i < HEIGHT; i++) { 
@@ -102,7 +108,7 @@ void draw()
 
     // Make the state change of the foods
     if (frame_count % 10 == 0) {
-        toggle != toggle;
+        toggle = !toggle;
     }
 
 	// Drawing All the elements in the screen 
@@ -122,32 +128,40 @@ void draw()
     frame_count++;
 } 
 
-// Function enables to move the Cursor 
-void move(int move_x, int move_y) 
-{ 
-	int x = pacman_x + move_x; 
-	int y = pacman_y + move_y; 
+// Function of pacman moving direction
+void smooth_move(float move_x, float move_y) {
+	pacman_vx = move_x;
+	pacman_vy = move_y;
+}
 
-	if (board[y][x] != WALL) { 
-		if (board[y][x] == FOOD) { 
-			score++; 
-			food--; 
-			curr++; 
-			if (food == 0) { 
-				res = 2; 
-				return; 
-			} 
-		} 
-		else if (board[y][x] == DEMON) { 
-			res = 1; 
-		} 
+// Update the position of pacman
+void position_update() {
+	float new_x = pacman_x + pacman_vx;
+	float new_y = pacman_y + pacman_vy;
 
-		board[pacman_y][pacman_x] = EMPTY; 
-		pacman_x = x; 
-		pacman_y = y; 
-		board[pacman_y][pacman_x] = PACMAN; 
-	} 
-} 
+	// Check if the new position is valid
+	if (board[(int)new_y][(int)new_x] != WALL) {
+		// if true, update the position
+		pacman_x = new_x;
+		pacman_y = new_y;
+	}
+
+	// Check if the new position is food
+	if (board[(int)pacman_y][(int)pacman_x] == FOOD) {
+		score += 1;
+		curr++;
+	}
+
+	// Check if the new position is demon
+	if (board[(int)pacman_y][(int)pacman_x] == DEMON) {
+		res = 1;
+	}
+
+	// Update to the board
+	board[(int)pacman_y][(int)pacman_x] = EMPTY;	// Clear the old position
+	board[(int)pacman_y][(int)pacman_x] = PACMAN;	// Set the new position
+}
+
 
 // Main Function 
 int main() 
@@ -170,6 +184,7 @@ int main()
 
 	while (1) { 
 		draw(); 
+		position_update();
 		printf("Total Food count: %d\n", totalFood); 
 		printf("Total Food eaten: %d\n", curr); 
 		if (res == 1) { 
@@ -178,6 +193,7 @@ int main()
 			printf("Game Over! Dead by Demon\n Your Score: "
 				"%d\n", 
 				score); 
+			system("pause");
 			return 1; 
 		} 
 
@@ -188,28 +204,31 @@ int main()
 			return 1; 
 		} 
 
-		// Taking the Input from the user 
-		ch = getch(); 
+		// check if any key is pressed
+		if (_kbhit()) {
+			// Taking the Input from the user 
+			ch = getch(); 
 
-		// Moving According to the 
-		// input character 
-		switch (ch) { 
-		case 'w': 
-			move(0, -1); 
-			break; 
-		case 's': 
-			move(0, 1); 
-			break; 
-		case 'a': 
-			move(-1, 0); 
-			break; 
-		case 'd': 
-			move(1, 0); 
-			break; 
-		case 'q': 
-			printf("Game Over! Your Score: %d\n", score); 
-			return 0; 
-		} 
+			// Moving According to the 
+			// input character 
+			switch (ch) { 
+			case 'w': 
+				smooth_move(0, -moving_speed);
+				break; 
+			case 's': 
+				smooth_move(0, moving_speed); 
+				break; 
+			case 'a': 
+				smooth_move(-moving_speed, 0); 
+				break; 
+			case 'd': 
+				smooth_move(moving_speed, 0); 
+				break; 
+			case 'q': 
+				printf("Game Over! Your Score: %d\n", score); 
+				return 0; 
+			} 
+		}	
 	} 
 
 	return 0; 
