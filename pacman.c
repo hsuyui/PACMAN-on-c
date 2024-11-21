@@ -136,6 +136,7 @@ void smooth_move(float move_x, float move_y) {
 
 // Update the position of pacman
 void position_update() {
+	board[(int)pacman_y][(int)pacman_x] = EMPTY;	// Clear the old position
 	float new_x = pacman_x + pacman_vx;
 	float new_y = pacman_y + pacman_vy;
 
@@ -158,7 +159,6 @@ void position_update() {
 	}
 
 	// Update to the board
-	board[(int)pacman_y][(int)pacman_x] = EMPTY;	// Clear the old position
 	board[(int)pacman_y][(int)pacman_x] = PACMAN;	// Set the new position
 }
 
@@ -190,7 +190,7 @@ int main()
 		if (res == 1) { 
 			// Clear screen 
 			system("cls"); 
-			printf("Game Over! Dead by Demon\n Your Score: "
+			printf("Game Over! Eaten by Demon\n Your Score: "
 				"%d\n", 
 				score); 
 			system("pause");
