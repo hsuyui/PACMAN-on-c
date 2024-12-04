@@ -15,6 +15,8 @@
 #define EMPTY ' ' 
 #define DEMON 'X' 
 #define moving_speed 0.3
+#define DEMON_MOVE_DELAY 5 // Number of frames before demons move
+#define MAX_DEMONS 2
 
 // Global Variables are 
 // Declared here 
@@ -36,6 +38,11 @@ float pacman_vy = 0;
 int toggle = 0;  // 0 stands for visible, 1 stands for invisible
 int frame_count = 0;
 
+// Control demon movement speed
+int demon_positions[MAX_DEMONS][3]; // [x, y, food_status], where food_status is 1 if there was food
+int demon_count = 0;
+int demon_move_timer = 0; // Timer to control demon movement
+
 
 
 void initialize() 
@@ -45,6 +52,7 @@ void initialize()
 	
 	// Map Load Done Editing//
 
+	// change the file location to ur own
 	FILE *file = fopen("D:/c codes/project/pacman/PACMAN-on-c/map.txt", "r");
     if (file == NULL) {
         printf("Error: Unable to open map file.\n");
@@ -77,19 +85,24 @@ void initialize()
     fclose(file);
 
     // 設定初始位置
+	pacman_x = WIDTH / 2;
+    pacman_y = HEIGHT / 2;
     board[(int)pacman_y][(int)pacman_x] = PACMAN;
 
 
     // 放置惡魔（隨機生成）
-    int demon_count = 5; 
-    while (demon_count > 0) {
+	demon_count = MAX_DEMONS; 
+	int demon_placed = 0;
+    while (demon_count > demon_placed) {
         int rand_x = rand() % WIDTH;
         int rand_y = rand() % HEIGHT;
 
         // make sure demons doesn't generate in the wall
         if (board[rand_y][rand_x] != '#' && !(rand_y == (int)pacman_y && rand_x == (int)pacman_x)) {
             board[rand_y][rand_x] = DEMON;
-            demon_count--;
+			demon_positions[demon_placed][0] = rand_x; // save the x coordinate
+			demon_positions[demon_placed][1] = rand_y; // save the y coordinate
+            demon_placed++;
         }
     }
 
@@ -137,6 +150,55 @@ void draw()
 void smooth_move(float move_x, float move_y) {
 	pacman_vx = move_x;
 	pacman_vy = move_y;
+}
+
+// Function of demon moving
+void demon_move(){
+	demon_move_timer++;
+    if (demon_move_timer < DEMON_MOVE_DELAY) {
+        return; // Skip moving demons until the delay has passed
+    }
+	demon_move_timer = 0; // reset the move timer
+
+    for (int i = 0; i < demon_count; i++) {
+        int x = demon_positions[i][0];
+        int y = demon_positions[i][1];
+		int was_food = demon_positions[i][2];
+
+        // Randomly decide movement direction: up, down, left, right
+        int direction = rand() % 4;
+        int new_x = x;
+        int new_y = y;
+        switch (direction) {
+            case 0: new_y = y - 1; break; // up
+            case 1: new_y = y + 1; break; // down
+            case 2: new_x = x - 1; break; // left
+            case 3: new_x = x + 1; break; // right
+        }
+
+        // Ensure new position is valid
+        if (new_x >= 0 && new_x < WIDTH && new_y >= 0 && new_y < HEIGHT &&
+            (board[new_y][new_x] == EMPTY || board[new_y][new_x] == FOOD)) {
+
+            // Clear old position, restore food if it was there
+            if (was_food) {
+                board[y][x] = FOOD;
+            }
+            else {
+                board[y][x] = EMPTY;
+            }
+
+            // Update position
+            demon_positions[i][0] = new_x;
+            demon_positions[i][1] = new_y;
+
+            // Update food status for the new position
+            demon_positions[i][2] = (board[new_y][new_x] == FOOD) ? 1 : 0;
+
+            // Move demon to new position
+            board[new_y][new_x] = DEMON;
+        }
+    }
 }
 
 /// Position Update Done Editing ///
@@ -193,6 +255,7 @@ int main()
 	while (flag && alive && food > 0) { 
 		draw(); 
 		position_update();
+		demon_move();
 		printf("Total Food count: %d\n", totalFood); 
 		printf("Total Food eaten: %d\n", curr); 
 		if (alive == 0) { 
