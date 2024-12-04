@@ -2,25 +2,28 @@
 #include <conio.h> 
 #include <stdio.h> 
 #include <stdlib.h> 
+#include <time.h>
 
 // All the elements to be used 
 // Declared here 
-#define WIDTH 40 
+#define WIDTH 60 
 #define HEIGHT 20 
 #define PACMAN 'C' 
 #define WALL '#' 
 #define FOOD '.' 
 #define EMPTY ' ' 
 #define DEMON 'X' 
-#define moving_speed 0.1
+#define moving_speed 0.3
 
 // Global Variables are 
 // Declared here 
-int res = 0; 
+int alive = 1; 	// 1 for alive, 0 for dead
 int score = 0; 
 char board[HEIGHT][WIDTH]; 
-int food = 0; 
-int curr = 0; 
+int food = 0; 	// Food count
+int curr = 0;
+int stage = 0; 
+char conti;
 
 // Define pacman position and velocity
 float pacman_x = WIDTH / 2.0;
@@ -32,74 +35,53 @@ float pacman_vy = 0;
 int toggle = 0;  // 0 stands for visible, 1 stands for invisible
 int frame_count = 0;
 
+
+
 void initialize() 
 { 
-	// Putting Walls as boundary in the Game 
-	for (int i = 0; i < HEIGHT; i++) { 
-		for (int j = 0; j < WIDTH; j++) { 
-			if (i == 0 || j == WIDTH - 1 || j == 0 
-				|| i == HEIGHT - 1) { 
-				board[i][j] = WALL; 
-			} 
-			else
-				board[i][j] = EMPTY; 
-		} 
-	} 
+	// add a random seed
+	srand(time(0));
+	
+	FILE *file = fopen("map.txt", "r");
+    if (file == NULL) {
+        printf("Error: Unable to open map file.\n");
+        exit(1);
+    }
+    
+    for (int i = 0; i < HEIGHT; i++) {
+        fgets(board[i], WIDTH + 2, file); // +2 是因為需要包括換行符和字符串結尾符
+    }
 
-	// Putting Walls inside the Game 
-	int count = 50; 
-	while (count != 0) { 
-		int i = (rand() % (HEIGHT + 1)); 
-		int j = (rand() % (WIDTH + 1)); 
+    fclose(file);
 
-		if (board[i][j] != WALL && board[i][j] != PACMAN) { 
-			board[i][j] = WALL; 
-			count--; 
-		} 
-	} 
+    // 設定初始位置
+    pacman_x = 1;
+    pacman_y = 1;
+    board[(int)pacman_y][(int)pacman_x] = PACMAN;
 
-	int val = 5; 
-	while (val--) { 
-		int row = (rand() % (HEIGHT + 1)); 
-		for (int j = 3; j < WIDTH - 3; j++) { 
-			if (board[row][j] != WALL 
-				&& board[row][j] != PACMAN) { 
-				board[row][j] = WALL; 
-			} 
-		} 
-	} 
+    // 計算食物的數量
+    food = 0;
+    for (int i = 0; i < HEIGHT; i++) {
+        for (int j = 0; j < WIDTH; j++) {
+            if (board[i][j] == FOOD) {
+                food++;
+            }
+        }
+    }
 
-	// Putting Demons in the Game 
-	count = 10; 
-	while (count != 0) { 
-		int i = (rand() % (HEIGHT + 1)); 
-		int j = (rand() % (WIDTH + 1)); 
+    // 放置一些惡魔（隨機生成）
+    int demon_count = 5; // 您可以根據需要調整惡魔的數量
+    while (demon_count > 0) {
+        int rand_x = rand() % WIDTH;
+        int rand_y = rand() % HEIGHT;
 
-		if (board[i][j] != WALL && board[i][j] != PACMAN) { 
-			board[i][j] = DEMON; 
-			count--; 
-		} 
-	} 
-
-	// Cursor at Center 
-	pacman_x = WIDTH / 2; 
-	pacman_y = HEIGHT / 2; 
-	board[(int)pacman_y][(int)pacman_x] = PACMAN; 
-
-	// Points Placed 
-	for (int i = 0; i < HEIGHT; i++) { 
-		for (int j = 0; j < WIDTH; j++) { 
-			if (i % 2 == 0 && j % 2 == 0 
-				&& board[i][j] != WALL 
-				&& board[i][j] != DEMON 
-				&& board[i][j] != PACMAN) { 
-
-				board[i][j] = FOOD; 
-				food++; 
-			} 
-		} 
-	} 
-} 
+        // 確保惡魔的位置是空白的且不是牆壁或食物
+        if (board[rand_y][rand_x] == EMPTY) {
+            board[rand_y][rand_x] = DEMON;
+            demon_count--;
+        }
+    }
+}
 
 void draw() 
 { 
@@ -116,7 +98,7 @@ void draw()
 		for (int j = 0; j < WIDTH; j++) { 
             if (board[i][j] == FOOD) {
                 // print different food based on the toggle state
-                printf("%c", toggle ? '*' : '.');
+                printf("%c", toggle ? ' ' : '.');
             }
             else {
                 printf("%c", board[i][j]);
@@ -151,11 +133,12 @@ void position_update() {
 	if (board[(int)pacman_y][(int)pacman_x] == FOOD) {
 		score += 1;
 		curr++;
+		food--;
 	}
 
 	// Check if the new position is demon
 	if (board[(int)pacman_y][(int)pacman_x] == DEMON) {
-		res = 1;
+		alive = 0;
 	}
 
 	// Update to the board
@@ -166,6 +149,7 @@ void position_update() {
 // Main Function 
 int main() 
 { 
+	int flag = 1;
 	initialize(); 
 	char ch; 
 	food -= 35; 
@@ -179,31 +163,54 @@ int main()
 	ch = getch(); 
 	if (ch != 'Y' && ch != 'y') { 
 		printf("Exit Game! "); 
-		return 1; 
+		flag = 0;
 	} 
 
-	while (1) { 
+	while (flag && alive && food > 0) { 
 		draw(); 
 		position_update();
 		printf("Total Food count: %d\n", totalFood); 
 		printf("Total Food eaten: %d\n", curr); 
-		if (res == 1) { 
+		if (alive == 0) { 
 			// Clear screen 
 			system("cls"); 
 			printf("Game Over! Eaten by Demon\n Your Score: "
 				"%d\n", 
 				score); 
-			system("pause");
-			return 1; 
+			flag = 0; 
+			printf("Do you want to continue? (Y/N)\n");
+			ch = getch();
+			if (ch == 'Y' || ch == 'y') {
+				// Reset game state
+				alive = 1;
+				score = 0;
+				curr = 0;
+				frame_count = 0;
+				flag = 1;
+				initialize();
+			} else {
+				flag = 0;
+			}
 		} 
-
-		if (res == 2) { 
+		//printf("breakpoint\n");
+		if (food == 0) { 
 			// Clear screen 
 			system("cls"); 
 			printf("You Win! \n Your Score: %d\n", score); 
-			return 1; 
+			flag = 0; 
+			ch = getch();
+			if (ch == 'Y' || ch == 'y') { 
+				// Reset game state
+				alive = 1;
+				score = 0;
+				curr = 0;
+				frame_count = 0;
+				stage++; 
+				flag = 1;
+				initialize(); 
+			}
 		} 
-
+		//printf("breakpoint2\n");
 		// check if any key is pressed
 		if (_kbhit()) {
 			// Taking the Input from the user 
@@ -226,10 +233,14 @@ int main()
 				break; 
 			case 'q': 
 				printf("Game Over! Your Score: %d\n", score); 
-				return 0; 
+				flag = 0; 
 			} 
+			printf("breakpoint3\n");
+		// determine to continue or not
+		
 		}	
 	} 
 
+	system("pause");
 	return 0; 
 }
