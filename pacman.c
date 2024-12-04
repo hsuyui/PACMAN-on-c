@@ -3,11 +3,12 @@
 #include <stdio.h> 
 #include <stdlib.h> 
 #include <time.h>
+#include <string.h>
 
 // All the elements to be used 
 // Declared here 
 #define WIDTH 60 
-#define HEIGHT 20 
+#define HEIGHT 15 
 #define PACMAN 'C' 
 #define WALL '#' 
 #define FOOD '.' 
@@ -42,21 +43,36 @@ void initialize()
 	// add a random seed
 	srand(time(0));
 	
-	FILE *file = fopen("map.txt", "r");
+	FILE *file = fopen("D:/c codes/project/pacman/PACMAN-on-c/map.txt", "r");
     if (file == NULL) {
         printf("Error: Unable to open map file.\n");
         exit(1);
     }
+	printf("success loading map");
+	//system("pause");
     
     for (int i = 0; i < HEIGHT; i++) {
-        fgets(board[i], WIDTH + 2, file); // +2 是因為需要包括換行符和字符串結尾符
+        if (fgets(board[i], WIDTH + 2, file)) {  // Adjusted to read the newline character
+            // Remove newline if present
+            char *newline = strchr(board[i], '\n');
+            if (newline) {
+                *newline = '\0';
+            }
+            // Fill in any extra space to WIDTH with EMPTY
+            for (int j = strlen(board[i]); j < WIDTH; j++) {
+                board[i][j] = EMPTY;
+            }
+        } else {
+            // Fill the rest of the board in case of missing lines
+            for (int j = 0; j < WIDTH; j++) {
+                board[i][j] = EMPTY;
+            }
+        }
     }
 
     fclose(file);
 
     // 設定初始位置
-    pacman_x = 1;
-    pacman_y = 1;
     board[(int)pacman_y][(int)pacman_x] = PACMAN;
 
     // 計算食物的數量
@@ -70,13 +86,13 @@ void initialize()
     }
 
     // 放置一些惡魔（隨機生成）
-    int demon_count = 5; // 您可以根據需要調整惡魔的數量
+    int demon_count = 5; 
     while (demon_count > 0) {
         int rand_x = rand() % WIDTH;
         int rand_y = rand() % HEIGHT;
 
-        // 確保惡魔的位置是空白的且不是牆壁或食物
-        if (board[rand_y][rand_x] == EMPTY) {
+        // make sure demons doesn't generate in the wall
+        if (board[rand_y][rand_x] != '#' && !(rand_y == (int)pacman_y && rand_x == (int)pacman_x)) {
             board[rand_y][rand_x] = DEMON;
             demon_count--;
         }
@@ -116,7 +132,9 @@ void smooth_move(float move_x, float move_y) {
 	pacman_vy = move_y;
 }
 
-// Update the position of pacman
+/// Position Update Done Editing///
+
+// Update the position of pacman 
 void position_update() {
 	board[(int)pacman_y][(int)pacman_x] = EMPTY;	// Clear the old position
 	float new_x = pacman_x + pacman_vx;
@@ -152,7 +170,6 @@ int main()
 	int flag = 1;
 	initialize(); 
 	char ch; 
-	food -= 35; 
 	int totalFood = food; 
 	// Instructions to Play 
 	printf(" Use buttons for w(up), a(left) , d(right) and "
