@@ -8,7 +8,7 @@
 // All the elements to be used 
 // Declared here 
 #define WIDTH 60 
-#define HEIGHT 15 
+#define HEIGHT 11
 #define PACMAN 'C' 
 #define WALL '#' 
 #define FOOD '.' 
@@ -43,26 +43,30 @@ void initialize()
 	// add a random seed
 	srand(time(0));
 	
+	// Map Load Done Editing//
+
 	FILE *file = fopen("D:/c codes/project/pacman/PACMAN-on-c/map.txt", "r");
     if (file == NULL) {
         printf("Error: Unable to open map file.\n");
+		system("pause");
         exit(1);
     }
-	printf("success loading map");
-	//system("pause");
+	printf("success loading map.\n");
+	system("cls");
     
     for (int i = 0; i < HEIGHT; i++) {
-        if (fgets(board[i], WIDTH + 2, file)) {  // Adjusted to read the newline character
+        if (fgets(board[i], WIDTH + 3, file)) {  // Adjusted to read the newline character
             // Remove newline if present
-            char *newline = strchr(board[i], '\n');
-            if (newline) {
-                *newline = '\0';
-            }
+			int len = strlen(board[i]);
+			if (len > 0 && board[i][len - 1] == '\n') {
+				board[i][len - 1] = '\0';
+			}
             // Fill in any extra space to WIDTH with EMPTY
             for (int j = strlen(board[i]); j < WIDTH; j++) {
                 board[i][j] = EMPTY;
             }
-        } else {
+        } 
+		else {
             // Fill the rest of the board in case of missing lines
             for (int j = 0; j < WIDTH; j++) {
                 board[i][j] = EMPTY;
@@ -75,17 +79,8 @@ void initialize()
     // 設定初始位置
     board[(int)pacman_y][(int)pacman_x] = PACMAN;
 
-    // 計算食物的數量
-    food = 0;
-    for (int i = 0; i < HEIGHT; i++) {
-        for (int j = 0; j < WIDTH; j++) {
-            if (board[i][j] == FOOD) {
-                food++;
-            }
-        }
-    }
 
-    // 放置一些惡魔（隨機生成）
+    // 放置惡魔（隨機生成）
     int demon_count = 5; 
     while (demon_count > 0) {
         int rand_x = rand() % WIDTH;
@@ -95,6 +90,16 @@ void initialize()
         if (board[rand_y][rand_x] != '#' && !(rand_y == (int)pacman_y && rand_x == (int)pacman_x)) {
             board[rand_y][rand_x] = DEMON;
             demon_count--;
+        }
+    }
+
+	// 計算食物的數量
+    food = 0;
+    for (int i = 0; i < HEIGHT; i++) {
+        for (int j = 0; j < WIDTH; j++) {
+            if (board[i][j] == FOOD) {
+                food++;
+            }
         }
     }
 }
@@ -126,13 +131,15 @@ void draw()
     frame_count++;
 } 
 
+/// Character Moving Done Editing ///
+
 // Function of pacman moving direction
 void smooth_move(float move_x, float move_y) {
 	pacman_vx = move_x;
 	pacman_vy = move_y;
 }
 
-/// Position Update Done Editing///
+/// Position Update Done Editing ///
 
 // Update the position of pacman 
 void position_update() {
@@ -172,7 +179,7 @@ int main()
 	char ch; 
 	int totalFood = food; 
 	// Instructions to Play 
-	printf(" Use buttons for w(up), a(left) , d(right) and "
+	printf("Use buttons for w(up), a(left) , d(right) and "
 		"s(down)\nAlso, Press q for quit\n"); 
 
 	printf("Enter Y to continue: \n"); 
@@ -227,7 +234,7 @@ int main()
 				initialize(); 
 			}
 		} 
-		//printf("breakpoint2\n");
+		
 		// check if any key is pressed
 		if (_kbhit()) {
 			// Taking the Input from the user 
@@ -252,7 +259,7 @@ int main()
 				printf("Game Over! Your Score: %d\n", score); 
 				flag = 0; 
 			} 
-			printf("breakpoint3\n");
+			
 		// determine to continue or not
 		
 		}	
